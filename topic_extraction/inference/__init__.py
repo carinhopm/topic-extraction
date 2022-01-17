@@ -1,0 +1,2 @@
+from topic_extraction.inference.bert_embedder import BertEmbedder
+from topic_extraction.inference.ke_predictor import KEPredictor
