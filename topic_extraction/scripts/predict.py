@@ -12,6 +12,7 @@ def parse_cmd():
                         help="path to source files containing texts (should be *.csv)")
     parser.add_argument("--output_files", nargs='+', help="path to output files (should be *.csv)")
     parser.add_argument("--ke_method", type=str, help="KE method to use for prediction", default="novel")
+    parser.add_argument("--keyword_len", type=int, default=4, help="max. number of words per keyphrase")
     parser.add_argument("--num_keywords", type=int, default=10, help="number of keywords per article")
     parser.add_argument("--input_col", type=str, default="text", help="which column should be considered as input")
     parser.add_argument('--keep_text', help='Keep article body into results', action='store_true')
@@ -24,14 +25,15 @@ def parse_cmd():
 def main():
     args = parse_cmd()
 
-    ke_model = KEPredictor({args.lang.lower(): None}, f_sem=args.f_sem)
+    ke_model = KEPredictor([args.lang.lower()], f_sem=args.f_sem)
 
     for src_idx, source in enumerate(args.sources):
         print(f'--> Computing predictions for {source}')
         df = pd.read_csv(source, index_col=0, encoding="utf-8")
 
         keywords = ke_model.predict(df[args.input_col].tolist(), 
-                                    args.lang.lower(), 
+                                    args.lang.lower(),
+                                    keyword_len=args.keyword_len,
                                     num_keywords=args.num_keywords, 
                                     incl_score=args.ke_score)
     
