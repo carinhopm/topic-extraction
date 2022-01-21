@@ -1,4 +1,4 @@
-# Topic Extraction
+# Novel Topic Extraction Model
 
 The repository contains a novel implementation for Topic Extraction.
 
