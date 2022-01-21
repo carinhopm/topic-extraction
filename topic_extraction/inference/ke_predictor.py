@@ -17,7 +17,7 @@ from topic_extraction.inference.statistics import calculate_word_scores, generat
 class KEPredictor(BaseEstimator):
     
     def __init__(self,
-                 models: dict,
+                 langs: List[str],
                  minFreq: int = 1,
                  w_deg: float = 2.0,
                  w_ent: float = 4.0,
@@ -26,8 +26,9 @@ class KEPredictor(BaseEstimator):
                  k_plus: int = 50,
                  force_cpu: bool = False,
                  f_sem: float = 0.9):
-        print(f'Initializing KE Predictor for {list(models.keys())}...')
+        print(f'Initializing KE Predictor for {langs}...')
         self.models = {}
+        self.langs = langs
         self.minFreq = minFreq
         self.w_deg = w_deg
         self.w_ent = w_ent
@@ -36,11 +37,11 @@ class KEPredictor(BaseEstimator):
         self.k_plus = k_plus
         self.force_cpu = force_cpu
         self.f_sem = f_sem
-        self.load_models(models)
+        self.load_models(langs)
         print(f'Input parameters: {self.get_params()}\n')
 
-    def load_models(self, models_args: Dict[str, dict]):
-        for lang in models_args:
+    def load_models(self, langs: List[str]):
+        for lang in langs:
             self.models[lang.lower()] = {
                 "model": BertEmbedder(lang.lower())}
         return self
@@ -157,3 +158,4 @@ class KEPredictor(BaseEstimator):
             entities_per_doc.append(entities)
         return results, entities_per_doc
 
+    
