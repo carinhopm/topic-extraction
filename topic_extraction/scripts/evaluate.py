@@ -79,21 +79,23 @@ def main():
                         Y = [i.lower() for i in literal_eval(row[args.keywords_col])]
                         cum = []
                         w_cum = []
-                        for y in Y:
+                        for x in X[:args.num_preds]:
                             matches = 0
                             w_matches = 0.0
-                            for x in X[:args.num_preds]:
+                            for y in Y:
                                 if x==y:
                                     matches += 1
-                                w_matches += word_similarity_score(x, y)
+                                sim = word_similarity_score(x, y)
+                                if sim > w_matches:
+                                    w_matches = sim
                             cum.append(matches)
                             w_cum.append(w_matches)
-                        total_matches += int(np.mean(cum))
-                        total_w_matches += np.mean(w_cum)
+                        total_matches += sum(cum)
+                        total_w_matches += sum(w_cum)
                     precision = total_matches/(args.num_preds*df.shape[0])
                     w_precision = total_w_matches/(args.num_preds*df.shape[0])
                     results['TP/Results'].append((total_matches, args.num_preds*df.shape[0]))
-                    results['wTP/Results'].append((int(total_w_matches), args.num_preds*df.shape[0]))
+                    results['wTP/Results'].append((np.round(total_w_matches, decimals=1), args.num_preds*df.shape[0]))
                     results['Precision'].append(float(np.round(precision, decimals=3)))
                     results['wPrecision'].append(float(np.round(w_precision, decimals=3)))
         
@@ -112,27 +114,23 @@ def main():
                     for idx, row in df.iterrows():
                         X = [i.lower() for i in literal_eval(row[ke_method+'_keywords'])]
                         Y = [i.lower() for i in literal_eval(row[args.keywords_col])]
-                        cum = []
-                        w_cum = []
-                        for y in Y:
+                        pos = 0
+                        w_pos = 0
+                        for i, x in enumerate(X[:args.num_preds]):
                             # exact matches
-                            pos = 0
-                            for i, x in enumerate(X[:args.num_preds]):
-                                if x==y:
-                                    pos = i+1
-                                    break
-                            cum.append(pos)
+                            if pos == 0:
+                                for y in Y:
+                                    if x==y:
+                                        pos = i+1
+                                        break
                             # partial word matches
-                            w_pos = 0
-                            for i, x in enumerate(X[:args.num_preds]):
-                                if word_similarity_score(x, y)>0.0:
-                                    w_pos = i+1
-                                    break
-                            w_cum.append(w_pos)
-                        cum = [1/item if item>0 else 0 for item in cum]
-                        w_cum = [1/item if item>0 else 0 for item in w_cum]
-                        acc.append(np.mean(cum))
-                        w_acc.append(np.mean(w_cum))
+                            if w_pos == 0:
+                                for y in Y:
+                                    if word_similarity_score(x, y)>0.0:
+                                        w_pos = i+1
+                                        break
+                        acc.append(float(1/pos) if pos>0 else 0.0)
+                        w_acc.append(float(1/w_pos) if pos>0 else 0.0)
                     mrr = np.mean(acc)
                     mrr_var = np.var(acc)
                     w_mrr = np.mean(w_acc)
@@ -157,27 +155,29 @@ def main():
                     for idx, row in df.iterrows():
                         X = [i.lower() for i in literal_eval(row[ke_method+'_keywords'])]
                         Y = [i.lower() for i in literal_eval(row[args.keywords_col])]
-                        cum = []
-                        w_cum = []
-                        for y in Y:
-                            acc = 0.0
-                            w_acc = 0.0
-                            matches = 0
-                            w_matches = 0
-                            pos = 1
-                            for x in X[:args.num_preds]:
-                                if x==y:
-                                    matches += 1
-                                    acc += matches / pos
+                        pos = 1
+                        acc = 0.0
+                        w_acc = 0.0
+                        matches = 0
+                        w_matches = 0
+                        for x in X[:args.num_preds]:
+                            exact_match = False
+                            max_w_sim = 0.0
+                            for y in Y:
+                                if not exact_match:
+                                    if x==y:
+                                        matches += 1
+                                        acc += matches / pos
+                                        exact_match = True
                                 w_sim = word_similarity_score(x, y)
-                                if w_sim>0.0:
-                                    w_matches += 1
-                                    w_acc += w_matches / pos
-                                pos += 1
-                            cum.append(acc/matches if matches > 0 else 0.0)
-                            w_cum.append(w_acc/w_matches if w_matches > 0 else 0.0)
-                        avgs.append(np.mean(cum))
-                        w_avgs.append(np.mean(w_cum))
+                                if w_sim>max_w_sim:
+                                    max_w_sim = w_sim
+                            if max_w_sim>0.0:
+                                w_matches += 1
+                                w_acc += w_matches / pos
+                            pos += 1
+                        avgs.append(acc/matches if matches > 0 else 0.0)
+                        w_avgs.append(w_acc/w_matches if w_matches > 0 else 0.0)
                     map = np.mean(avgs)
                     map_var = np.var(avgs)
                     w_map = np.mean(w_avgs)
